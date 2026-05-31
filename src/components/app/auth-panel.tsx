@@ -1,35 +1,20 @@
 "use client";
 
-import { Cloud, LogOut, Mail } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Cloud, Loader2, LogOut } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { getSupabaseClient } from "@/lib/supabase/client";
+import { clearLocalAccountCache, forgetLocalCacheUser } from "@/lib/db/account-cache";
 import { syncWithSupabase } from "@/lib/supabase/sync";
 import { useInvalidateData } from "@/lib/data/hooks";
+import { useSupabaseSession } from "@/lib/supabase/use-session";
 
 export function AuthPanel() {
-  const supabase = getSupabaseClient();
+  const auth = useSupabaseSession();
   const invalidate = useInvalidateData();
-  const [email, setEmail] = useState("");
-  const [userEmail, setUserEmail] = useState<string | undefined>();
-
-  useEffect(() => {
-    if (!supabase) return;
-    supabase.auth.getUser().then(({ data }) => setUserEmail(data.user?.email));
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => setUserEmail(session?.user.email));
-    return () => data.subscription.unsubscribe();
-  }, [supabase]);
-
-  if (!supabase) {
-    return (
-      <section className="quiet-panel rounded-[1.5rem] p-4">
-        <h2 className="font-semibold">云同步</h2>
-        <p className="mt-2 text-sm leading-6 text-muted-foreground">未配置 Supabase 环境变量时，浸录会保持完全本地离线可用。</p>
-      </section>
-    );
-  }
+  const [signingOut, setSigningOut] = useState(false);
+  const userEmail = auth.status === "signed-in" ? auth.session.user.email : undefined;
+  const supabase = auth.status === "signed-in" ? auth.supabase : null;
 
   return (
     <section className="quiet-panel rounded-[1.5rem] p-4">
@@ -37,7 +22,7 @@ export function AuthPanel() {
         <Cloud className="h-5 w-5 text-primary" />
         <h2 className="font-semibold">云同步</h2>
       </div>
-      {userEmail ? (
+      {auth.status === "signed-in" && supabase ? (
         <div className="grid gap-3">
           <p className="text-sm text-muted-foreground">{userEmail}</p>
           <div className="flex flex-wrap gap-2">
@@ -51,26 +36,33 @@ export function AuthPanel() {
               <Cloud className="h-4 w-4" />
               立即同步
             </Button>
-            <Button variant="outline" onClick={() => supabase.auth.signOut()}>
-              <LogOut className="h-4 w-4" />
+            <Button
+              variant="outline"
+              disabled={signingOut}
+              onClick={async () => {
+                setSigningOut(true);
+                try {
+                  await syncWithSupabase();
+                  const { error } = await supabase.auth.signOut();
+                  if (error) throw error;
+                  await clearLocalAccountCache();
+                  forgetLocalCacheUser();
+                  await invalidate();
+                  toast.success("已退出登录");
+                } catch (error) {
+                  toast.error(error instanceof Error ? error.message : "退出登录失败");
+                } finally {
+                  setSigningOut(false);
+                }
+              }}
+            >
+              {signingOut ? <Loader2 className="h-4 w-4 animate-spin" /> : <LogOut className="h-4 w-4" />}
               退出
             </Button>
           </div>
         </div>
       ) : (
-        <div className="grid gap-3">
-          <Input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@example.com" />
-          <Button
-            onClick={async () => {
-              const { error } = await supabase.auth.signInWithOtp({ email });
-              if (error) throw error;
-              toast.success("登录链接已发送");
-            }}
-          >
-            <Mail className="h-4 w-4" />
-            发送 magic link
-          </Button>
-        </div>
+        <p className="text-sm leading-6 text-muted-foreground">当前未登录，请回到登录页使用邮箱链接登录。</p>
       )}
     </section>
   );

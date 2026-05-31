@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
+import { AuthGate } from "@/components/app/auth-gate";
 import { AppShell } from "@/components/app/app-shell";
 import { AppProviders } from "@/components/app/providers";
 import { PwaRegister } from "@/components/app/pwa-register";
@@ -27,8 +28,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     <html lang="zh-CN" className="dark">
       <body>
         <AppProviders>
-          <AppShell>{children}</AppShell>
-          <PwaRegister />
+          <AuthGate>
+            <AppShell>{children}</AppShell>
+            <PwaRegister />
+          </AuthGate>
         </AppProviders>
       </body>
     </html>

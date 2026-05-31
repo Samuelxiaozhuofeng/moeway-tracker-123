@@ -4,16 +4,17 @@
 
 ## 项目定位
 
-- 这是一个面向 Moeway / Refold / Dreaming Spanish 风格沉浸学习者的离线优先 PWA。
-- 核心用户价值是记录听力/阅读沉浸、作品进度、生词语块、目标、统计和云同步。
-- 所有核心功能必须在未配置 Supabase、离线、只使用 IndexedDB 的情况下可用。
+- 这是一个面向 Moeway / Refold / Dreaming Spanish 风格沉浸学习者的线上 PWA。
+- 当前生产站点部署在 Vercel：`https://immerselog.vercel.app`。
+- Supabase 是正式后端；用户必须使用邮箱 + 密码登录后才能进入 App。
+- IndexedDB 作为本地缓存和弱网缓冲层，不再作为唯一数据归宿。
 
 ## 技术栈约束
 
 - Next.js 15 App Router + TypeScript + Tailwind CSS。
 - React 固定使用 18.x；不要升级到 React 19，除非先确认 Tremor peer dependency 已支持。
 - UI 风格沿用现有 Radix/shadcn 风格组件，基础组件放在 `src/components/ui/`。
-- 本地数据层使用 Dexie IndexedDB，云同步使用 Supabase JSONB entity sync。
+- 本地缓存使用 Dexie IndexedDB，线上持久化使用 Supabase JSONB entity sync。
 - 统计图使用 Recharts / Tremor；动效使用 Framer Motion。
 - 测试使用 Vitest + fake-indexeddb。
 
@@ -34,7 +35,9 @@
 
 ## 数据流规则
 
-- 所有用户写入先落 IndexedDB，并维护 `syncState`。
+- 所有用户写入先落 IndexedDB，并维护 `syncState`，随后自动同步到 Supabase。
+- 前端必须经过 `AuthGate` 登录门禁；不要新增绕过登录的核心页面入口。
+- 切换登录账号时必须隔离本地缓存，避免不同账号共享 IndexedDB 数据。
 - UI 读取优先通过 TanStack Query hooks，不要在页面组件里直接散落 Dexie 查询。
 - 新增或修改实体类型时，必须同步检查：
   - `src/types/domain.ts`
@@ -104,10 +107,19 @@ npm run dev
 
 ## Supabase 注意事项
 
-- Supabase 是增强功能，不是本地使用前置条件。
+- Supabase 是生产后端，不是可选增强功能。
+- 当前生产项目 ref：`oggsjjlhbzltefmptewl`。
+- 登录方式是邮箱 + 密码；不要恢复 magic link 登录，除非用户明确要求。
 - 不要在源码中硬编码 Supabase URL、anon key 以外的敏感信息；本项目使用 `.env.local`。
 - 修改同步 schema 时要新增 migration，并检查 RLS。
 - `immerselog_entities` 使用 JSONB entity sync；新增实体需确保本地 entity 与远端 payload 可往返。
+
+## Vercel 注意事项
+
+- 当前生产项目：`immerselog`，生产域名：`https://immerselog.vercel.app`。
+- Vercel Framework Preset 必须是 `nextjs`，不要改回 `Other`。
+- 生产环境必须配置 `NEXT_PUBLIC_SUPABASE_URL` 和 `NEXT_PUBLIC_SUPABASE_ANON_KEY`。
+- 详细部署记录和验收项见 `deployment.md`。
 
 ## 当前已覆盖的关键测试
 

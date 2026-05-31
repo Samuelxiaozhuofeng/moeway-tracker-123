@@ -138,7 +138,7 @@ Last updated: 2026-05-31
 
 - Vercel project: `immerselog`
 - Vercel production URL: `https://immerselog.vercel.app`
-- Vercel production deployment: `dpl_9PrhfRDB86sMUMEc4kPnLeytEj9K`
+- Vercel production deployment: `dpl_FhAT9mpdWwvLbqvPtJ4qiBi9iiYj`
 - Vercel framework preset: `nextjs`
 - Vercel deployment protection: SSO protection disabled for public access
 - Supabase project: `immerselog`
@@ -150,6 +150,9 @@ Last updated: 2026-05-31
 - Vercel Production env vars configured:
   - `NEXT_PUBLIC_SUPABASE_URL`
   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- Frontend auth gate: enabled; users must sign in with email and password before accessing the app shell
+- Supabase Auth email confirmation: disabled via `mailer_autoconfirm`
+- Account cache isolation: enabled; local IndexedDB data is cleared when switching authenticated users
 
 Verified:
 
