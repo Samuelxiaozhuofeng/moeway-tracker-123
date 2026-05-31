@@ -13,8 +13,8 @@ describe("goal settings", () => {
       languageId: "lang_ja",
       dailyListeningMinutes: 90,
       dailyReadingMinutes: 45,
-      weeklyListeningMinutes: 630,
-      weeklyReadingMinutes: 315
+      listeningGoalIntervalDays: 2,
+      readingGoalIntervalDays: 3
     });
 
     await expect(listGoals()).resolves.toMatchObject([
@@ -23,14 +23,37 @@ describe("goal settings", () => {
         languageId: "lang_ja",
         dailyListeningMinutes: 90,
         dailyReadingMinutes: 45,
-        weeklyListeningMinutes: 630,
-        weeklyReadingMinutes: 315
+        listeningGoalIntervalDays: 2,
+        readingGoalIntervalDays: 3,
+        weeklyListeningMinutes: 360,
+        weeklyReadingMinutes: 135
+      }
+    ]);
+  });
+
+  it("defaults old goals without interval fields to daily cadence", async () => {
+    await getDb().goals.add(makeGoal({ id: "goal_ja", languageId: "lang_ja" }));
+
+    await upsertGoal({
+      languageId: "lang_ja",
+      dailyReadingMinutes: 10
+    });
+
+    await expect(listGoals()).resolves.toMatchObject([
+      {
+        id: "goal_ja",
+        readingGoalIntervalDays: 1,
+        weeklyReadingMinutes: 70
       }
     ]);
   });
 
   it("rejects invalid goal minutes", async () => {
     await expect(upsertGoal({ languageId: "lang_ja", dailyListeningMinutes: -1 })).rejects.toThrow("每日听力目标不能小于 0。");
+  });
+
+  it("rejects invalid goal intervals", async () => {
+    await expect(upsertGoal({ languageId: "lang_ja", readingGoalIntervalDays: 8 })).rejects.toThrow("阅读目标频率必须是 1 到 7 天之间的整数。");
   });
 });
 

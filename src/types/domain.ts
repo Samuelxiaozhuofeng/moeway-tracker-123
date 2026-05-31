@@ -41,6 +41,8 @@ export interface GoalSettings extends SyncableEntity {
   languageId?: string | null;
   dailyListeningMinutes: number;
   dailyReadingMinutes: number;
+  listeningGoalIntervalDays?: number;
+  readingGoalIntervalDays?: number;
   weeklyListeningMinutes: number;
   weeklyReadingMinutes: number;
 }

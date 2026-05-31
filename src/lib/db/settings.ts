@@ -1,6 +1,7 @@
 import type { GoalSettings, UserSettings } from "@/types/domain";
 import { createDefaultGoal, createDefaultSettings } from "@/lib/data/defaults";
 import { getDb } from "@/lib/db/database";
+import { deriveWeeklyGoalMinutes, normalizeGoalIntervalDays } from "@/lib/goals/schedule";
 import { createId } from "@/lib/utils/id";
 
 export async function getSettings() {
@@ -42,13 +43,27 @@ export async function upsertGoal(input: Partial<GoalSettings> & { languageId?: s
       ? await db.goals.where("languageId").equals(input.languageId).filter((goal) => !goal.deletedAt).first()
       : undefined;
   const now = new Date().toISOString();
+  const dailyListeningMinutes = resolveGoalMinutes(input.dailyListeningMinutes, existing?.dailyListeningMinutes ?? 60, "每日听力目标");
+  const dailyReadingMinutes = resolveGoalMinutes(input.dailyReadingMinutes, existing?.dailyReadingMinutes ?? 30, "每日阅读目标");
+  const listeningGoalIntervalDays = normalizeGoalIntervalDays(
+    input.listeningGoalIntervalDays,
+    existing?.listeningGoalIntervalDays ?? 1,
+    "听力目标频率"
+  );
+  const readingGoalIntervalDays = normalizeGoalIntervalDays(
+    input.readingGoalIntervalDays,
+    existing?.readingGoalIntervalDays ?? 1,
+    "阅读目标频率"
+  );
   const goal: GoalSettings = {
     id: existing?.id ?? createId("goal"),
     languageId: "languageId" in input ? input.languageId ?? null : existing?.languageId ?? null,
-    dailyListeningMinutes: resolveGoalMinutes(input.dailyListeningMinutes, existing?.dailyListeningMinutes ?? 60, "每日听力目标"),
-    dailyReadingMinutes: resolveGoalMinutes(input.dailyReadingMinutes, existing?.dailyReadingMinutes ?? 30, "每日阅读目标"),
-    weeklyListeningMinutes: resolveGoalMinutes(input.weeklyListeningMinutes, existing?.weeklyListeningMinutes ?? 420, "每周听力目标"),
-    weeklyReadingMinutes: resolveGoalMinutes(input.weeklyReadingMinutes, existing?.weeklyReadingMinutes ?? 210, "每周阅读目标"),
+    dailyListeningMinutes,
+    dailyReadingMinutes,
+    listeningGoalIntervalDays,
+    readingGoalIntervalDays,
+    weeklyListeningMinutes: deriveWeeklyGoalMinutes(dailyListeningMinutes, listeningGoalIntervalDays),
+    weeklyReadingMinutes: deriveWeeklyGoalMinutes(dailyReadingMinutes, readingGoalIntervalDays),
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
     syncState: "dirty"

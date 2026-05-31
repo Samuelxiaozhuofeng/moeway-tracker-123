@@ -3,18 +3,20 @@
 import { Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { GoalTargetFields } from "@/components/app/goal-target-fields";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { createDefaultGoal } from "@/lib/data/defaults";
 import { upsertGoal } from "@/lib/db/settings";
 import { useGoals, useInvalidateData, useLanguages } from "@/lib/data/hooks";
+import { deriveWeeklyGoalMinutes } from "@/lib/goals/schedule";
 import { syncWithSupabase } from "@/lib/supabase/sync";
 import type { GoalSettings, TargetLanguage } from "@/types/domain";
 
 interface GoalDraft {
   dailyListeningMinutes: number;
   dailyReadingMinutes: number;
+  listeningGoalIntervalDays: number;
+  readingGoalIntervalDays: number;
   weeklyListeningMinutes: number;
   weeklyReadingMinutes: number;
 }
@@ -51,19 +53,23 @@ export function GoalSettingsPanel() {
                 </div>
                 <span className="h-3 w-3 shrink-0 rounded-full" style={{ backgroundColor: language.accent }} />
               </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2">
-                <Field label="每日听力">
-                  <GoalInput value={draft.dailyListeningMinutes} onChange={(value) => updateDraft(language.id, "dailyListeningMinutes", value, setDrafts)} />
-                </Field>
-                <Field label="每日阅读">
-                  <GoalInput value={draft.dailyReadingMinutes} onChange={(value) => updateDraft(language.id, "dailyReadingMinutes", value, setDrafts)} />
-                </Field>
-                <Field label="每周听力">
-                  <GoalInput value={draft.weeklyListeningMinutes} onChange={(value) => updateDraft(language.id, "weeklyListeningMinutes", value, setDrafts)} />
-                </Field>
-                <Field label="每周阅读">
-                  <GoalInput value={draft.weeklyReadingMinutes} onChange={(value) => updateDraft(language.id, "weeklyReadingMinutes", value, setDrafts)} />
-                </Field>
+              <div className="mt-3 grid gap-3">
+                <GoalTargetFields
+                  label="听力"
+                  dailyMinutes={draft.dailyListeningMinutes}
+                  intervalDays={draft.listeningGoalIntervalDays}
+                  weeklyMinutes={draft.weeklyListeningMinutes}
+                  onDailyMinutesChange={(value) => updateDraft(language.id, "dailyListeningMinutes", value, setDrafts)}
+                  onIntervalDaysChange={(value) => updateDraft(language.id, "listeningGoalIntervalDays", value, setDrafts)}
+                />
+                <GoalTargetFields
+                  label="阅读"
+                  dailyMinutes={draft.dailyReadingMinutes}
+                  intervalDays={draft.readingGoalIntervalDays}
+                  weeklyMinutes={draft.weeklyReadingMinutes}
+                  onDailyMinutesChange={(value) => updateDraft(language.id, "dailyReadingMinutes", value, setDrafts)}
+                  onIntervalDaysChange={(value) => updateDraft(language.id, "readingGoalIntervalDays", value, setDrafts)}
+                />
               </div>
             </div>
           );
@@ -109,12 +115,15 @@ function goalForLanguage(language: TargetLanguage, goalsByLanguage: Map<string |
 }
 
 function toGoalDraft(goal: GoalSettings): GoalDraft {
-  return {
+  const draft = {
     dailyListeningMinutes: goal.dailyListeningMinutes,
     dailyReadingMinutes: goal.dailyReadingMinutes,
+    listeningGoalIntervalDays: goal.listeningGoalIntervalDays ?? 1,
+    readingGoalIntervalDays: goal.readingGoalIntervalDays ?? 1,
     weeklyListeningMinutes: goal.weeklyListeningMinutes,
     weeklyReadingMinutes: goal.weeklyReadingMinutes
   };
+  return withDerivedWeeklyMinutes(draft);
 }
 
 function updateDraft(
@@ -123,34 +132,22 @@ function updateDraft(
   value: number,
   setDrafts: React.Dispatch<React.SetStateAction<Record<string, GoalDraft>>>
 ) {
-  setDrafts((current) => ({
-    ...current,
-    [languageId]: {
+  setDrafts((current) => {
+    const draft = {
       ...(current[languageId] ?? toGoalDraft(createDefaultGoal(languageId))),
       [key]: value
-    }
-  }));
+    };
+    return {
+      ...current,
+      [languageId]: withDerivedWeeklyMinutes(draft)
+    };
+  });
 }
 
-function GoalInput({ value, onChange }: { value: number; onChange: (value: number) => void }) {
-  return (
-    <Input
-      type="number"
-      min={0}
-      value={value}
-      onChange={(event) => {
-        const next = Number(event.target.value);
-        if (Number.isFinite(next)) onChange(next);
-      }}
-    />
-  );
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-2">
-      <Label>{label}</Label>
-      {children}
-    </div>
-  );
+function withDerivedWeeklyMinutes(draft: GoalDraft): GoalDraft {
+  return {
+    ...draft,
+    weeklyListeningMinutes: deriveWeeklyGoalMinutes(draft.dailyListeningMinutes, draft.listeningGoalIntervalDays),
+    weeklyReadingMinutes: deriveWeeklyGoalMinutes(draft.dailyReadingMinutes, draft.readingGoalIntervalDays)
+  };
 }

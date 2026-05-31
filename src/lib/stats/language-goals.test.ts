@@ -29,13 +29,37 @@ describe("buildLanguageDailyGoals", () => {
         language: { id: "lang_ja" },
         goal: { dailyListeningMinutes: 120, dailyReadingMinutes: 40 },
         listeningMinutes: 45,
-        readingMinutes: 20
+        readingMinutes: 20,
+        listeningGoalMinutes: 120,
+        readingGoalMinutes: 40,
+        isListeningScheduledToday: true,
+        isReadingScheduledToday: true
       },
       {
         language: { id: "lang_es" },
         goal: { dailyListeningMinutes: 30, dailyReadingMinutes: 15 },
         listeningMinutes: 0,
-        readingMinutes: 0
+        readingMinutes: 0,
+        listeningGoalMinutes: 30,
+        readingGoalMinutes: 15,
+        isListeningScheduledToday: true,
+        isReadingScheduledToday: true
+      }
+    ]);
+  });
+
+  it("returns zero daily target on unscheduled interval days", () => {
+    const rows = buildLanguageDailyGoals(
+      [],
+      [makeLanguage({ id: "lang_ja", name: "日语" })],
+      [makeGoal({ id: "goal_ja", languageId: "lang_ja", dailyReadingMinutes: 10, readingGoalIntervalDays: 2, weeklyReadingMinutes: 40 })],
+      "2026-06-02"
+    );
+
+    expect(rows).toMatchObject([
+      {
+        readingGoalMinutes: 0,
+        isReadingScheduledToday: false
       }
     ]);
   });

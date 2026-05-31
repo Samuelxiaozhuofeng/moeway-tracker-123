@@ -47,6 +47,8 @@ export function createDefaultGoal(languageId?: string | null): GoalSettings {
     languageId: languageId ?? null,
     dailyListeningMinutes: 60,
     dailyReadingMinutes: 30,
+    listeningGoalIntervalDays: 1,
+    readingGoalIntervalDays: 1,
     weeklyListeningMinutes: 420,
     weeklyReadingMinutes: 210,
     createdAt: now(),
