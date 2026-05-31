@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { createLanguage, deleteLanguage, getLanguageUsageSummary, listLanguages } from "@/lib/db/languages";
+import { createLanguage, deleteLanguage, getLanguageUsageSummary, listLanguages, updateLanguage } from "@/lib/db/languages";
 import { listGoals } from "@/lib/db/settings";
 import { getDb } from "@/lib/db/database";
 import { makeLanguage, makeSession, makeWork } from "@/test/factories";
@@ -58,6 +58,27 @@ describe("language settings", () => {
     await expect(db.vocabulary.get("vocab_ja")).resolves.toBeDefined();
     await expect(db.settings.get("settings_local")).resolves.toMatchObject({
       defaultLanguageId: "lang_es",
+      syncState: "dirty"
+    });
+  });
+
+  it("updates an existing language", async () => {
+    const db = getDb();
+    await db.languages.add(makeLanguage({ id: "lang_ja", name: "日语", code: "ja", nativeName: "日本語" }));
+
+    await updateLanguage({
+      id: "lang_ja",
+      name: "Japanese",
+      code: "jp",
+      nativeName: "日本語 / Japanese",
+      accent: "#00ffaa"
+    });
+
+    await expect(db.languages.get("lang_ja")).resolves.toMatchObject({
+      name: "Japanese",
+      code: "jp",
+      nativeName: "日本語 / Japanese",
+      accent: "#00ffaa",
       syncState: "dirty"
     });
   });

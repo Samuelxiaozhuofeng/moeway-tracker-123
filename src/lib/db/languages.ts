@@ -13,6 +13,9 @@ export interface LanguageUsageSummary {
   goals: number;
 }
 
+export type UpdateLanguageInput = Pick<TargetLanguage, "id"> &
+  Partial<Pick<TargetLanguage, "code" | "name" | "nativeName" | "accent">>;
+
 export async function listLanguages() {
   const languages = await getDb().languages.toArray();
   return languages
@@ -56,6 +59,34 @@ export async function createLanguage(input: LanguageInput) {
     });
   });
   return language;
+}
+
+export async function updateLanguage(input: UpdateLanguageInput) {
+  const db = getDb();
+  const existing = await db.languages.get(input.id);
+  if (!existing || existing.deletedAt) {
+    throw new Error("目标语言不存在。");
+  }
+
+  const name = input.name?.trim() ?? existing.name;
+  const code = input.code?.trim().toLowerCase() ?? existing.code;
+  if (!name || !code) {
+    throw new Error("语言名称不能为空。");
+  }
+
+  const now = new Date().toISOString();
+  const next: TargetLanguage = {
+    ...existing,
+    code,
+    name,
+    nativeName: input.nativeName?.trim() || undefined,
+    accent: input.accent?.trim() || existing.accent,
+    updatedAt: now,
+    syncState: "dirty"
+  };
+
+  await db.languages.put(next);
+  return next;
 }
 
 export async function getLanguageUsageSummary(id: string): Promise<LanguageUsageSummary> {

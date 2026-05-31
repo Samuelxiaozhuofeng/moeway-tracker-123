@@ -1,12 +1,13 @@
 "use client";
 
-import { Plus, Trash2 } from "lucide-react";
+import { Pencil, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import { LanguageDeleteDialog } from "@/components/app/language-delete-dialog";
+import { LanguageEditDialog } from "@/components/app/language-edit-dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { createLanguage, deleteLanguage, getLanguageUsageSummary, type LanguageUsageSummary } from "@/lib/db/languages";
+import { createLanguage, deleteLanguage, getLanguageUsageSummary, updateLanguage, type LanguageUsageSummary } from "@/lib/db/languages";
 import { useInvalidateData, useLanguages } from "@/lib/data/hooks";
 import { syncWithSupabase } from "@/lib/supabase/sync";
 import type { TargetLanguage } from "@/types/domain";
@@ -19,6 +20,8 @@ export function LanguageSettings() {
     language: TargetLanguage;
     usage: LanguageUsageSummary;
   }>();
+  const [editingLanguage, setEditingLanguage] = useState<TargetLanguage>();
+  const [isSavingLanguage, setIsSavingLanguage] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const canDelete = languages.length > 1;
 
@@ -33,22 +36,27 @@ export function LanguageSettings() {
               <span className="font-medium">{language.name}</span>
               {language.nativeName && <span className="ml-2 text-muted-foreground">{language.nativeName}</span>}
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              aria-label={`删除${language.name}`}
-              disabled={!canDelete}
-              onClick={async () => {
-                try {
-                  const usage = await getLanguageUsageSummary(language.id);
-                  setPendingDeletion({ language, usage });
-                } catch (error) {
-                  toast.error(error instanceof Error ? error.message : "读取语言使用情况失败");
-                }
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            <div className="flex shrink-0 gap-1">
+              <Button variant="ghost" size="icon" aria-label={`编辑${language.name}`} onClick={() => setEditingLanguage(language)}>
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                aria-label={`删除${language.name}`}
+                disabled={!canDelete}
+                onClick={async () => {
+                  try {
+                    const usage = await getLanguageUsageSummary(language.id);
+                    setPendingDeletion({ language, usage });
+                  } catch (error) {
+                    toast.error(error instanceof Error ? error.message : "读取语言使用情况失败");
+                  }
+                }}
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         ))}
       </div>
@@ -95,6 +103,28 @@ export function LanguageSettings() {
             toast.error(error instanceof Error ? error.message : "删除失败");
           } finally {
             setIsDeleting(false);
+          }
+        }}
+      />
+      <LanguageEditDialog
+        language={editingLanguage}
+        isSaving={isSavingLanguage}
+        onOpenChange={(open) => !open && setEditingLanguage(undefined)}
+        onSave={async (values) => {
+          if (!editingLanguage) return;
+          setIsSavingLanguage(true);
+          try {
+            await updateLanguage({ id: editingLanguage.id, ...values });
+            setEditingLanguage(undefined);
+            await invalidate();
+            void syncWithSupabase().catch((error) => {
+              toast.error(error instanceof Error ? error.message : "云同步失败");
+            });
+            toast.success("语言已保存");
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : "语言保存失败");
+          } finally {
+            setIsSavingLanguage(false);
           }
         }}
       />

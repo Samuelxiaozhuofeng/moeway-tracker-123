@@ -113,6 +113,10 @@ npm run dev
 - 不要在源码中硬编码 Supabase URL、anon key 以外的敏感信息；本项目使用 `.env.local`。
 - 修改同步 schema 时要新增 migration，并检查 RLS。
 - `immerselog_entities` 使用 JSONB entity sync；新增实体需确保本地 entity 与远端 payload 可往返。
+- 本机可用 `npx --yes supabase ...` 代替全局 `supabase` CLI；当前验证版本为 `2.102.0`。
+- 远端操作优先先链接项目：`SUPABASE_ACCESS_TOKEN=... npx --yes supabase link --project-ref oggsjjlhbzltefmptewl --yes`。
+- 推 migration 前先 dry-run：`SUPABASE_ACCESS_TOKEN=... npx --yes supabase db push --linked --dry-run`；确认后再 `db push --linked --yes`。
+- 推送后用 `db push --linked --dry-run` 确认 `Remote database is up to date`；需要查库时可用 `npx --yes supabase db query --linked`。
 
 ## Vercel 注意事项
 
