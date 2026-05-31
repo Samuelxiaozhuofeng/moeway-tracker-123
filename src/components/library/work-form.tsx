@@ -1,11 +1,10 @@
 "use client";
 
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Search, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo } from "react";
 import { useForm } from "react-hook-form";
-import { useQuery } from "@tanstack/react-query";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +12,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { WorkStructureFields } from "@/components/library/work-structure-fields";
+import { WorkSearchBox } from "@/components/library/work-search-box";
 import { createWork, updateWork, type WorkInput } from "@/lib/db/works";
 import { useDataMutation, useLanguages } from "@/lib/data/hooks";
 import { defaultProgressModeForKind } from "@/lib/progress/units";
@@ -61,7 +61,6 @@ type WorkFormValues = z.infer<typeof workSchema>;
 
 export function WorkForm({ work, onDone }: { work?: LibraryWork; onDone?: () => void }) {
   const { data: languages = [] } = useLanguages();
-  const [query, setQuery] = useState("");
   const form = useForm<WorkFormValues>({
     resolver: zodResolver(workSchema),
     defaultValues: {
@@ -97,16 +96,6 @@ export function WorkForm({ work, onDone }: { work?: LibraryWork; onDone?: () => 
     if (kind === "listening" && progressMode !== "episodes") form.setValue("progressMode", "episodes");
     if (kind === "reading" && progressMode === "episodes") form.setValue("progressMode", "chapters");
   }, [form, kind, progressMode]);
-
-  const search = useQuery({
-    queryKey: ["media-search", query],
-    queryFn: async () => {
-      const response = await fetch(`/api/search?q=${encodeURIComponent(query)}`);
-      const json = (await response.json()) as { results: WorkSearchResult[] };
-      return json.results;
-    },
-    enabled: query.trim().length > 1
-  });
 
   const mutation = useDataMutation(async (values: WorkFormValues) => {
     const input: WorkInput = {
@@ -145,33 +134,7 @@ export function WorkForm({ work, onDone }: { work?: LibraryWork; onDone?: () => 
       className="grid gap-5"
       onSubmit={form.handleSubmit((values) => mutation.mutate(values, { onSuccess: onDone }))}
     >
-      <div className="grid gap-3">
-        <Label htmlFor="ai-search">AI 智能添加</Label>
-        <div className="flex gap-2">
-          <Input id="ai-search" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="输入中文 / 日文 / 英文作品名" />
-          <Button type="button" variant="outline" size="icon" aria-label="搜索">
-            <Search className="h-4 w-4" />
-          </Button>
-        </div>
-        {search.data && search.data.length > 0 && (
-          <div className="no-scrollbar flex gap-3 overflow-x-auto pb-1">
-            {search.data.map((result) => (
-              <button
-                key={`${result.source}-${result.externalId}`}
-                type="button"
-                onClick={() => applySearchResult(result)}
-                className="quiet-panel w-36 shrink-0 rounded-2xl p-2 text-left transition hover:border-primary/40"
-              >
-                <div className="relative mb-2 aspect-[3/4] overflow-hidden rounded-xl bg-white/[0.05]">
-                  {result.coverUrl ? <Image src={result.coverUrl} alt="" fill className="object-cover" /> : null}
-                </div>
-                <p className="line-clamp-2 text-xs font-medium">{result.title}</p>
-                <p className="mt-1 text-[0.68rem] text-muted-foreground">{result.source}</p>
-              </button>
-            ))}
-          </div>
-        )}
-      </div>
+      <WorkSearchBox onSelect={applySearchResult} />
 
       <div className="grid grid-cols-[5.5rem_1fr] gap-4">
         <div className="relative aspect-[3/4] overflow-hidden rounded-2xl bg-white/[0.06]">
