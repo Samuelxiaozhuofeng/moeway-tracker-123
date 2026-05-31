@@ -118,6 +118,7 @@ npm run dev
 - 推 migration 前先 dry-run：`SUPABASE_ACCESS_TOKEN=... npx --yes supabase db push --linked --dry-run`；确认后再 `db push --linked --yes`。
 - 推送后用 `db push --linked --dry-run` 确认 `Remote database is up to date`；需要查库时可用 `npx --yes supabase db query --linked`。
 
+.
 ## Vercel 注意事项
 
 - 当前生产项目：`immerselog`，生产域名：`https://immerselog.vercel.app`。
