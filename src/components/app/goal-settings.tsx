@@ -21,9 +21,14 @@ interface GoalDraft {
   weeklyReadingMinutes: number;
 }
 
+const emptyGoals: GoalSettings[] = [];
+const emptyLanguages: TargetLanguage[] = [];
+
 export function GoalSettingsPanel() {
-  const { data: goals = [] } = useGoals();
-  const { data: languages = [] } = useLanguages();
+  const { data: goalData } = useGoals();
+  const { data: languageData } = useLanguages();
+  const goals = goalData ?? emptyGoals;
+  const languages = languageData ?? emptyLanguages;
   const [drafts, setDrafts] = useState<Record<string, GoalDraft>>({});
   const invalidate = useInvalidateData();
 
@@ -33,7 +38,8 @@ export function GoalSettingsPanel() {
   );
 
   useEffect(() => {
-    setDrafts(Object.fromEntries(languages.map((language) => [language.id, toGoalDraft(goalForLanguage(language, goalsByLanguage))])));
+    const nextDrafts = Object.fromEntries(languages.map((language) => [language.id, toGoalDraft(goalForLanguage(language, goalsByLanguage))]));
+    setDrafts((current) => (areGoalDraftsEqual(current, nextDrafts) ? current : nextDrafts));
   }, [goalsByLanguage, languages]);
 
   return (
@@ -150,4 +156,27 @@ function withDerivedWeeklyMinutes(draft: GoalDraft): GoalDraft {
     weeklyListeningMinutes: deriveWeeklyGoalMinutes(draft.dailyListeningMinutes, draft.listeningGoalIntervalDays),
     weeklyReadingMinutes: deriveWeeklyGoalMinutes(draft.dailyReadingMinutes, draft.readingGoalIntervalDays)
   };
+}
+
+function areGoalDraftsEqual(left: Record<string, GoalDraft>, right: Record<string, GoalDraft>) {
+  const leftKeys = Object.keys(left);
+  const rightKeys = Object.keys(right);
+  if (leftKeys.length !== rightKeys.length) return false;
+
+  return rightKeys.every((key) => {
+    const leftDraft = left[key];
+    const rightDraft = right[key];
+    return Boolean(leftDraft) && areGoalDraftEqual(leftDraft, rightDraft);
+  });
+}
+
+function areGoalDraftEqual(left: GoalDraft, right: GoalDraft) {
+  return (
+    left.dailyListeningMinutes === right.dailyListeningMinutes &&
+    left.dailyReadingMinutes === right.dailyReadingMinutes &&
+    left.listeningGoalIntervalDays === right.listeningGoalIntervalDays &&
+    left.readingGoalIntervalDays === right.readingGoalIntervalDays &&
+    left.weeklyListeningMinutes === right.weeklyListeningMinutes &&
+    left.weeklyReadingMinutes === right.weeklyReadingMinutes
+  );
 }
