@@ -58,7 +58,7 @@ export default function HomePage() {
         </motion.section>
       )}
 
-      <GoalProgress summary={summary} />
+      <GoalProgress sessions={sessions} languages={languages} />
 
       <section className="grid gap-4 lg:grid-cols-[1fr_22rem]">
         <Heatmap sessions={sessions} />

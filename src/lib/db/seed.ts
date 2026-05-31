@@ -11,7 +11,7 @@ export async function ensureLocalSeed() {
   if (languageCount === 0) {
     const languages = createDefaultLanguages();
     await db.languages.bulkAdd(languages);
-    await db.goals.add(createDefaultGoal(languages[0]?.id));
+    await db.goals.bulkAdd(languages.map((language) => createDefaultGoal(language.id)));
   }
 
   if (settingsCount === 0) {

@@ -36,19 +36,31 @@ export async function getPrimaryGoal(languageId?: string | null) {
 
 export async function upsertGoal(input: Partial<GoalSettings> & { languageId?: string | null }) {
   const db = getDb();
-  const existing = input.id ? await db.goals.get(input.id) : undefined;
+  const existing = input.id
+    ? await db.goals.get(input.id)
+    : input.languageId
+      ? await db.goals.where("languageId").equals(input.languageId).filter((goal) => !goal.deletedAt).first()
+      : undefined;
   const now = new Date().toISOString();
   const goal: GoalSettings = {
     id: existing?.id ?? createId("goal"),
-    languageId: input.languageId ?? existing?.languageId ?? null,
-    dailyListeningMinutes: input.dailyListeningMinutes ?? existing?.dailyListeningMinutes ?? 60,
-    dailyReadingMinutes: input.dailyReadingMinutes ?? existing?.dailyReadingMinutes ?? 30,
-    weeklyListeningMinutes: input.weeklyListeningMinutes ?? existing?.weeklyListeningMinutes ?? 420,
-    weeklyReadingMinutes: input.weeklyReadingMinutes ?? existing?.weeklyReadingMinutes ?? 210,
+    languageId: "languageId" in input ? input.languageId ?? null : existing?.languageId ?? null,
+    dailyListeningMinutes: resolveGoalMinutes(input.dailyListeningMinutes, existing?.dailyListeningMinutes ?? 60, "每日听力目标"),
+    dailyReadingMinutes: resolveGoalMinutes(input.dailyReadingMinutes, existing?.dailyReadingMinutes ?? 30, "每日阅读目标"),
+    weeklyListeningMinutes: resolveGoalMinutes(input.weeklyListeningMinutes, existing?.weeklyListeningMinutes ?? 420, "每周听力目标"),
+    weeklyReadingMinutes: resolveGoalMinutes(input.weeklyReadingMinutes, existing?.weeklyReadingMinutes ?? 210, "每周阅读目标"),
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
     syncState: "dirty"
   };
   await db.goals.put(goal);
   return goal;
+}
+
+function resolveGoalMinutes(value: number | undefined, fallback: number, label: string) {
+  const resolved = value ?? fallback;
+  if (!Number.isFinite(resolved) || resolved < 0) {
+    throw new Error(`${label}不能小于 0。`);
+  }
+  return Math.round(resolved);
 }
