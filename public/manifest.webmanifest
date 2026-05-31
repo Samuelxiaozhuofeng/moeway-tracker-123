@@ -1,0 +1,34 @@
+{
+  "name": "浸录 ImmerseLog",
+  "short_name": "浸录",
+  "description": "离线优先的沉浸式语言学习记录 PWA",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["window-controls-overlay", "standalone", "browser"],
+  "background_color": "#0d1020",
+  "theme_color": "#0d1020",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "开始沉浸",
+      "short_name": "记录",
+      "url": "/log",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    },
+    {
+      "name": "作品架",
+      "short_name": "作品",
+      "url": "/library",
+      "icons": [{ "src": "/icon.svg", "sizes": "any", "type": "image/svg+xml" }]
+    }
+  ]
+}

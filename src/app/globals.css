@@ -1,0 +1,77 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+    --background: 230 29% 8%;
+    --foreground: 42 44% 92%;
+    --card: 229 25% 12%;
+    --card-foreground: 42 44% 92%;
+    --popover: 229 25% 12%;
+    --popover-foreground: 42 44% 92%;
+    --primary: 169 67% 68%;
+    --primary-foreground: 219 45% 8%;
+    --secondary: 252 90% 86%;
+    --secondary-foreground: 236 28% 10%;
+    --muted: 229 18% 18%;
+    --muted-foreground: 224 13% 70%;
+    --accent: 31 91% 69%;
+    --accent-foreground: 232 29% 9%;
+    --destructive: 350 82% 68%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 229 19% 22%;
+    --input: 229 19% 18%;
+    --ring: 169 67% 68%;
+    --radius: 0.875rem;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  html {
+    background: #0d1020;
+    text-rendering: optimizeLegibility;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  body {
+    @apply min-h-screen bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+
+  ::selection {
+    background: rgba(119, 229, 207, 0.32);
+  }
+}
+
+@layer components {
+  .safe-bottom {
+    padding-bottom: calc(env(safe-area-inset-bottom) + 5.5rem);
+  }
+
+  .surface {
+    @apply border border-white/[0.08] bg-white/[0.045] shadow-soft backdrop-blur-xl;
+  }
+
+  .quiet-panel {
+    @apply border border-white/[0.08] bg-white/[0.035] backdrop-blur-md;
+  }
+
+  .text-balance {
+    text-wrap: balance;
+  }
+}
+
+@layer utilities {
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
