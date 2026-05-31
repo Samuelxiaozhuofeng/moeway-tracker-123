@@ -57,7 +57,15 @@ export function TimerDock() {
                 <Play className="h-4 w-4" />
               </Button>
             )}
-            <Button variant="amber" size="icon" onClick={() => setFinishing(true)} aria-label="结束">
+            <Button
+              variant="amber"
+              size="icon"
+              onClick={() => {
+                pauseTimer();
+                setFinishing(true);
+              }}
+              aria-label="结束"
+            >
               <Square className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="icon" onClick={resetTimer} aria-label="放弃">

@@ -2,7 +2,7 @@
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
-import { Toaster } from "sonner";
+import { toast, Toaster } from "sonner";
 import { ensureLocalSeed } from "@/lib/db/seed";
 import { syncWithSupabase } from "@/lib/supabase/sync";
 
@@ -26,12 +26,16 @@ export function AppProviders({ children }: { children: React.ReactNode }) {
       .then(() => queryClient.invalidateQueries())
       .then(() => syncWithSupabase())
       .then(() => queryClient.invalidateQueries())
-      .catch(() => undefined);
+      .catch((error) => {
+        toast.error(error instanceof Error ? error.message : "初始化同步失败");
+      });
 
     const handleOnline = () => {
       syncWithSupabase()
         .then(() => queryClient.invalidateQueries())
-        .catch(() => undefined);
+        .catch((error) => {
+          toast.error(error instanceof Error ? error.message : "联网同步失败");
+        });
     };
     window.addEventListener("online", handleOnline);
     return () => window.removeEventListener("online", handleOnline);

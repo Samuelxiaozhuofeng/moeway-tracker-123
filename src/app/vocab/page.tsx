@@ -1,6 +1,7 @@
 "use client";
 
-import { Download, RotateCcw } from "lucide-react";
+import { CheckCircle2, Download, RotateCcw } from "lucide-react";
+import { useState } from "react";
 import { toast } from "sonner";
 import { LanguageSelect } from "@/components/app/filters";
 import { PageHeader } from "@/components/app/page-header";
@@ -16,6 +17,8 @@ export default function VocabPage() {
   const { languageId, setLanguage } = useFilterStore();
   const { data: items = [] } = useVocabulary(languageId);
   const invalidate = useInvalidateData();
+  const [showReviewed, setShowReviewed] = useState(true);
+  const visibleItems = showReviewed ? items : items.filter((item) => !item.reviewedAt);
 
   return (
     <div className="mx-auto grid max-w-4xl gap-5">
@@ -36,12 +39,26 @@ export default function VocabPage() {
       <div className="max-w-xs">
         <LanguageSelect languages={languages} value={languageId} onValueChange={setLanguage} />
       </div>
+      <div className="flex justify-end">
+        <Button variant="outline" onClick={() => setShowReviewed((current) => !current)}>
+          <CheckCircle2 className="h-4 w-4" />
+          {showReviewed ? "隐藏已复习" : "显示已复习"}
+        </Button>
+      </div>
       <section className="grid gap-2">
-        {items.map((item) => (
+        {visibleItems.map((item) => (
           <article key={item.id} className="quiet-panel rounded-[1.5rem] p-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-lg font-semibold">{item.phrase}</h2>
+                <div className="flex flex-wrap items-center gap-2">
+                  <h2 className="text-lg font-semibold">{item.phrase}</h2>
+                  {item.reviewedAt && (
+                    <span className="inline-flex items-center gap-1 rounded-full border border-primary/30 px-2 py-0.5 text-xs text-primary">
+                      <CheckCircle2 className="h-3.5 w-3.5" />
+                      已复习
+                    </span>
+                  )}
+                </div>
                 {(item.reading || item.meaning) && <p className="mt-1 text-sm text-muted-foreground">{item.reading} {item.meaning}</p>}
                 {item.context && <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.context}</p>}
                 {item.sourceTitle && <p className="mt-2 text-xs text-primary/80">{item.sourceTitle}</p>}
@@ -61,7 +78,11 @@ export default function VocabPage() {
             </div>
           </article>
         ))}
-        {items.length === 0 && <p className="quiet-panel rounded-[1.5rem] py-12 text-center text-sm text-muted-foreground">还没有生词。</p>}
+        {visibleItems.length === 0 && (
+          <p className="quiet-panel rounded-[1.5rem] py-12 text-center text-sm text-muted-foreground">
+            {items.length === 0 ? "还没有生词。" : "已复习的生词已隐藏。"}
+          </p>
+        )}
       </section>
     </div>
   );

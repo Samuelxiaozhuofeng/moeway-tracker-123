@@ -69,7 +69,7 @@ async function pushDirtyEntities(userId: string) {
       user_id: userId,
       entity_type: entityType,
       payload: { ...entity, userId, syncState: "synced" },
-      deleted_at: entity.syncState === "deleted" ? (entity.deletedAt ?? new Date().toISOString()) : null,
+      deleted_at: entity.deletedAt ?? null,
       updated_at: entity.updatedAt
     }));
 
@@ -99,7 +99,7 @@ async function applyRemoteEntity(row: RemoteEntity) {
     id: row.id,
     deletedAt: row.deleted_at,
     updatedAt: row.updated_at,
-    syncState: row.deleted_at ? "deleted" : "synced"
+    syncState: "synced"
   });
 }
 

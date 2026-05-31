@@ -27,6 +27,11 @@ export function StartImmersion({ compact = false }: { compact?: boolean }) {
   const startTimer = useTimerStore((state) => state.startTimer);
 
   useEffect(() => {
+    if (workId === "none" || works.some((work) => work.id === workId)) return;
+    setWorkId("none");
+  }, [workId, works]);
+
+  useEffect(() => {
     debugLanguageSelection("language state", {
       requestedLanguageId: languageId,
       selectedLanguageId,

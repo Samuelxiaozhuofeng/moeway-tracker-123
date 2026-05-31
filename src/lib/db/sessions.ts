@@ -41,8 +41,9 @@ export async function listSessions(filters?: {
   from?: string;
   to?: string;
 }) {
-  const sessions = await getDb().sessions.where("syncState").notEqual("deleted").toArray();
+  const sessions = await getDb().sessions.toArray();
   return sessions
+    .filter((session) => !session.deletedAt)
     .filter((session) => !filters?.languageId || session.languageId === filters.languageId)
     .filter((session) => !filters?.kind || session.kind === filters.kind)
     .filter((session) => !filters?.workId || session.workId === filters.workId)
@@ -53,7 +54,7 @@ export async function listSessions(filters?: {
 
 export async function getSession(id: string) {
   const session = await getDb().sessions.get(id);
-  return session?.syncState === "deleted" ? undefined : session;
+  return session?.deletedAt ? undefined : session;
 }
 
 export async function createSession(input: SessionInput) {

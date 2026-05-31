@@ -7,6 +7,7 @@ import { listGoals } from "@/lib/db/settings";
 import { listSessions } from "@/lib/db/sessions";
 import { listVocabulary } from "@/lib/db/vocabulary";
 import { getWork, listWorks } from "@/lib/db/works";
+import { syncWithSupabase } from "@/lib/supabase/sync";
 import type { ImmersionKind, WorkStatus } from "@/types/domain";
 
 export const queryKeys = {
@@ -64,6 +65,9 @@ export function useDataMutation<TData, TVariables>(
     mutationFn,
     onSuccess: async () => {
       await invalidate();
+      void syncWithSupabase().catch((error) => {
+        toast.error(error instanceof Error ? error.message : "云同步失败");
+      });
       if (successMessage) toast.success(successMessage);
     },
     onError: (error) => toast.error(error instanceof Error ? error.message : "操作失败")

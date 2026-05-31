@@ -25,7 +25,8 @@ export async function updateSettings(patch: Partial<UserSettings>) {
 }
 
 export async function listGoals() {
-  return getDb().goals.where("syncState").notEqual("deleted").toArray();
+  const goals = await getDb().goals.toArray();
+  return goals.filter((goal) => !goal.deletedAt);
 }
 
 export async function getPrimaryGoal(languageId?: string | null) {

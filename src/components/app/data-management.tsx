@@ -50,10 +50,16 @@ export function DataManagement() {
         onChange={async (event) => {
           const file = event.target.files?.[0];
           if (!file) return;
-          const payload = JSON.parse(await file.text()) as BackupPayload;
-          await importBackup(payload);
-          await invalidate();
-          toast.success("导入完成");
+          try {
+            const payload = JSON.parse(await file.text()) as BackupPayload;
+            await importBackup(payload);
+            await invalidate();
+            toast.success("导入完成");
+          } catch (error) {
+            toast.error(error instanceof Error ? error.message : "导入失败，请检查 JSON 文件。");
+          } finally {
+            event.target.value = "";
+          }
         }}
       />
     </section>

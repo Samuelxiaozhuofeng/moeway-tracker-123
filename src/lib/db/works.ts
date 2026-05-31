@@ -56,8 +56,9 @@ function normalizeWork(input: WorkInput, existing?: LibraryWork): LibraryWork {
 }
 
 export async function listWorks(filters?: { languageId?: string; kind?: ImmersionKind; status?: WorkStatus }) {
-  const works = await getDb().works.where("syncState").notEqual("deleted").toArray();
+  const works = await getDb().works.toArray();
   return works
+    .filter((work) => !work.deletedAt)
     .filter((work) => !filters?.languageId || work.languageId === filters.languageId)
     .filter((work) => !filters?.kind || work.kind === filters.kind)
     .filter((work) => !filters?.status || work.status === filters.status)
@@ -67,7 +68,7 @@ export async function listWorks(filters?: { languageId?: string; kind?: Immersio
 export async function getWork(id?: string | null) {
   if (!id) return undefined;
   const work = await getDb().works.get(id);
-  return work?.syncState === "deleted" ? undefined : work;
+  return work?.deletedAt ? undefined : work;
 }
 
 export async function createWork(input: WorkInput) {

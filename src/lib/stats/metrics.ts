@@ -158,7 +158,8 @@ export function milestoneForMinutes(minutes: number) {
 
 function calculateCurrentStreak(daily: DailyTotal[]) {
   const activeDays = new Set(daily.filter((day) => day.total > 0).map((day) => day.date));
-  let cursor = new Date();
+  const today = new Date();
+  let cursor = activeDays.has(formatIsoDate(today)) ? today : subDays(today, 1);
   let streak = 0;
   while (activeDays.has(formatIsoDate(cursor))) {
     streak += 1;

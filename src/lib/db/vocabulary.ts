@@ -13,8 +13,9 @@ export interface VocabularyInput {
 }
 
 export async function listVocabulary(languageId?: string) {
-  const items = await getDb().vocabulary.where("syncState").notEqual("deleted").toArray();
+  const items = await getDb().vocabulary.toArray();
   return items
+    .filter((item) => !item.deletedAt)
     .filter((item) => !languageId || item.languageId === languageId)
     .sort((a, b) => b.createdAt.localeCompare(a.createdAt));
 }
@@ -62,7 +63,7 @@ export async function createVocabularyFromPhrases(params: {
 export async function markVocabularyReviewed(id: string) {
   const db = getDb();
   const current = await db.vocabulary.get(id);
-  if (!current) return;
+  if (!current || current.deletedAt) return;
   await db.vocabulary.put({
     ...current,
     reviewedAt: new Date().toISOString(),

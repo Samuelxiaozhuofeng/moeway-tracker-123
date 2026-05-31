@@ -6,12 +6,16 @@ type LanguageInput = Pick<TargetLanguage, "code" | "name"> &
   Partial<Pick<TargetLanguage, "nativeName" | "accent" | "isCustom">>;
 
 export async function listLanguages() {
-  return getDb().languages.where("syncState").notEqual("deleted").sortBy("createdAt");
+  const languages = await getDb().languages.toArray();
+  return languages
+    .filter((language) => !language.deletedAt)
+    .sort((a, b) => a.createdAt.localeCompare(b.createdAt));
 }
 
 export async function getLanguage(id?: string | null) {
   if (!id) return undefined;
-  return getDb().languages.get(id);
+  const language = await getDb().languages.get(id);
+  return language?.deletedAt ? undefined : language;
 }
 
 export async function createLanguage(input: LanguageInput) {

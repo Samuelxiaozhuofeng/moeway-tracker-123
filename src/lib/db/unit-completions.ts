@@ -128,7 +128,7 @@ export async function toggleWorkUnitCompletion(workId: string, unitNumber: numbe
 async function findSessionContainingUnit(workId: string, unitNumber: number) {
   const sessions = await getDb().sessions.where("workId").equals(workId).toArray();
   return sessions
-    .filter((session) => session.syncState !== "deleted")
+    .filter((session) => !session.deletedAt)
     .map((session) => ({ session, unitNumbers: getSessionUnitNumbers(session) }))
     .filter((entry) => entry.unitNumbers.includes(unitNumber))
     .sort(compareUnitSessionCandidates)[0];
