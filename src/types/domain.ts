@@ -4,7 +4,7 @@ export type WorkStatus = "planned" | "active" | "completed" | "dropped";
 
 export type WorkProgressMode = "episodes" | "chapters" | "pages";
 
-export type SessionEntrySource = "manual" | "timer" | "historical-import" | "work-detail-toggle";
+export type SessionEntrySource = "manual" | "timer" | "activity" | "historical-import" | "work-detail-toggle";
 
 export type WorkFormat =
   | "anime"
@@ -68,6 +68,17 @@ export interface LibraryWork extends SyncableEntity {
   lastRecordedAt?: string;
 }
 
+export interface ActivityTemplate extends SyncableEntity {
+  name: string;
+  languageId?: string | null;
+  kind: ImmersionKind;
+  defaultMinutes: number;
+  note?: string;
+  sortOrder: number;
+  isArchived: boolean;
+  lastUsedAt?: string;
+}
+
 export interface ImmersionSession extends SyncableEntity {
   date: string;
   startedAt?: string;
@@ -75,6 +86,7 @@ export interface ImmersionSession extends SyncableEntity {
   languageId: string;
   kind: ImmersionKind;
   workId?: string | null;
+  activityId?: string | null;
   workTitle?: string;
   minutes: number;
   unitsCompleted: number;

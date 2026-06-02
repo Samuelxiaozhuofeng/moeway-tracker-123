@@ -1,4 +1,4 @@
-import type { ImmersionSession, LibraryWork, TargetLanguage } from "@/types/domain";
+import type { ActivityTemplate, ImmersionSession, LibraryWork, TargetLanguage } from "@/types/domain";
 
 const baseTime = "2026-05-31T08:00:00.000Z";
 
@@ -29,6 +29,23 @@ export function makeWork(overrides: Partial<LibraryWork> = {}): LibraryWork {
     completedUnits: 0,
     averageCleanMinutes: 24,
     progressMode: "episodes",
+    userId: null,
+    createdAt: baseTime,
+    updatedAt: baseTime,
+    syncState: "dirty",
+    ...overrides
+  };
+}
+
+export function makeActivity(overrides: Partial<ActivityTemplate> = {}): ActivityTemplate {
+  return {
+    id: "activity_1",
+    name: "Anki",
+    languageId: "lang_ja",
+    kind: "listening",
+    defaultMinutes: 15,
+    sortOrder: 0,
+    isArchived: false,
     userId: null,
     createdAt: baseTime,
     updatedAt: baseTime,

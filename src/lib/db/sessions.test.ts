@@ -2,8 +2,32 @@ import { describe, expect, it } from "vitest";
 import { getDb } from "@/lib/db/database";
 import { createSession, deleteSession, updateSession } from "@/lib/db/sessions";
 import { createWork, getWork } from "@/lib/db/works";
+import { makeActivity } from "@/test/factories";
 
 describe("session progress recalculation", () => {
+  it("creates activity sessions and marks the activity as used", async () => {
+    await getDb().activities.add(makeActivity({ id: "activity_anki", name: "Anki", languageId: "lang_es" }));
+
+    const session = await createSession({
+      date: "2026-06-01",
+      languageId: "lang_es",
+      kind: "listening",
+      activityId: "activity_anki",
+      minutes: 15
+    });
+
+    await expect(getDb().sessions.get(session.id)).resolves.toMatchObject({
+      activityId: "activity_anki",
+      workId: null,
+      workTitle: "Anki",
+      entrySource: "activity"
+    });
+    await expect(getDb().activities.get("activity_anki")).resolves.toMatchObject({
+      lastUsedAt: expect.any(String),
+      syncState: "dirty"
+    });
+  });
+
   it("updates the linked work by the units delta when a session changes", async () => {
     const work = await createWork({
       title: "Frieren",

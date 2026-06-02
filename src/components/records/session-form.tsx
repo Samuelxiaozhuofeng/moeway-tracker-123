@@ -5,13 +5,14 @@ import { Save } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { ActivityDialog } from "@/components/activities/activity-dialog";
+import { Field } from "@/components/records/form-field";
 import { SessionRangeFields } from "@/components/records/session-range-fields";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { useDataMutation, useLanguages, useWorks } from "@/lib/data/hooks";
+import { useActivities, useDataMutation, useLanguages, useWorks } from "@/lib/data/hooks";
 import { createSession } from "@/lib/db/sessions";
 import { createVocabularyFromPhrases } from "@/lib/db/vocabulary";
 import {
@@ -21,6 +22,7 @@ import {
   resolveWorkProgressMode
 } from "@/lib/progress/units";
 import { formatIsoDate } from "@/lib/utils/format";
+import { splitListText } from "@/lib/utils/text";
 import type { ImmersionKind } from "@/types/domain";
 
 const optionalPositiveInt = z.preprocess(
@@ -32,6 +34,7 @@ const sessionSchema = z.object({
   date: z.string().min(1),
   languageId: z.string().min(1),
   kind: z.enum(["listening", "reading"]),
+  activityId: z.string().optional(),
   workId: z.string().optional(),
   workTitle: z.string().optional(),
   minutes: z.coerce.number().int().min(1, "至少记录 1 分钟"),
@@ -79,6 +82,7 @@ export function SessionForm({
       date: defaults?.date ?? formatIsoDate(),
       languageId: defaults?.languageId ?? languages[0]?.id ?? "lang_ja",
       kind: defaults?.kind ?? "listening",
+      activityId: defaults?.activityId ?? "none",
       workId: defaults?.workId ?? "none",
       workTitle: defaults?.workTitle ?? "",
       minutes: defaults?.minutes ?? 25,
@@ -91,7 +95,10 @@ export function SessionForm({
 
   const languageId = form.watch("languageId");
   const kind = form.watch("kind");
+  const activityId = form.watch("activityId");
+  const { data: activities = [] } = useActivities();
   const { data: works = [] } = useWorks({ languageId, kind });
+  const selectedActivity = activities.find((activity) => activity.id === activityId);
   const selectedWork = works.find((work) => work.id === form.watch("workId"));
   const progressMode = selectedWork
     ? resolveWorkProgressMode(selectedWork, selectedWork.kind)
@@ -126,13 +133,14 @@ export function SessionForm({
   }, [form, manualMinutes, rangeEnabled, selectedWork, unitEnd, unitStart]);
 
   const mutation = useDataMutation(async (values: SessionFormValues) => {
-    const phrases = splitPhrases(values.phrasesText);
+    const phrases = splitListText(values.phrasesText);
     const session = await createSession({
       date: values.date,
       languageId: values.languageId,
       kind: values.kind,
+      activityId: values.activityId === "none" ? null : values.activityId,
       workId: values.workId === "none" ? null : values.workId,
-      workTitle: selectedWork?.title ?? values.workTitle,
+      workTitle: selectedWork?.title ?? selectedActivity?.name ?? values.workTitle,
       minutes: values.minutes,
       unitsCompleted: values.unitsCompleted,
       progressMode,
@@ -145,7 +153,7 @@ export function SessionForm({
     await createVocabularyFromPhrases({
       sessionId: session.id,
       languageId: values.languageId,
-      sourceTitle: selectedWork?.title ?? values.workTitle,
+      sourceTitle: selectedWork?.title ?? selectedActivity?.name ?? values.workTitle,
       phrases
     });
     return session;
@@ -179,12 +187,47 @@ export function SessionForm({
         </Field>
       </div>
 
+      <Field label="活动">
+        <div className="grid grid-cols-[1fr_auto] gap-2">
+          <Select
+            value={activityId}
+            onValueChange={(value) => {
+              const activity = activities.find((item) => item.id === value);
+              form.setValue("activityId", value);
+              if (!activity) {
+                form.setValue("workTitle", "");
+                return;
+              }
+              if (activity.languageId) form.setValue("languageId", activity.languageId);
+              form.setValue("kind", activity.kind);
+              form.setValue("minutes", activity.defaultMinutes, { shouldDirty: true, shouldValidate: true });
+              form.setValue("workId", "none");
+              form.setValue("workTitle", activity.name);
+              setManualMinutes(false);
+              setRangeEnabled(false);
+            }}
+          >
+            <SelectTrigger><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="none">不使用活动</SelectItem>
+              {activities.map((activity) => (
+                <SelectItem key={activity.id} value={activity.id}>
+                  {activity.name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+          <ActivityDialog />
+        </div>
+      </Field>
+
       <Field label="作品">
         <Select
           value={form.watch("workId")}
           onValueChange={(value) => {
             const work = works.find((item) => item.id === value);
             form.setValue("workId", value);
+            form.setValue("activityId", "none");
             form.setValue("workTitle", work?.title ?? "");
             setManualMinutes(false);
             setRangeEnabled(false);
@@ -252,18 +295,5 @@ export function SessionForm({
         {mutation.isPending ? "保存中..." : "保存记录"}
       </Button>
     </form>
-  );
-}
-
-function splitPhrases(value?: string) {
-  return value?.split(/\n|,|，/).map((item) => item.trim()).filter(Boolean) ?? [];
-}
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <div className="grid gap-2">
-      <Label>{label}</Label>
-      {children}
-    </div>
   );
 }

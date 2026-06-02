@@ -2,6 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { listActivities } from "@/lib/db/activities";
 import { listLanguages } from "@/lib/db/languages";
 import { listGoals } from "@/lib/db/settings";
 import { listSessions } from "@/lib/db/sessions";
@@ -11,6 +12,7 @@ import { syncWithSupabase } from "@/lib/supabase/sync";
 import type { ImmersionKind, WorkStatus } from "@/types/domain";
 
 export const queryKeys = {
+  activities: (filters?: unknown) => ["activities", filters] as const,
   languages: ["languages"] as const,
   goals: ["goals"] as const,
   work: (id?: string) => ["work", id] as const,
@@ -18,6 +20,10 @@ export const queryKeys = {
   sessions: (filters?: unknown) => ["sessions", filters] as const,
   vocabulary: (languageId?: string) => ["vocabulary", languageId] as const
 };
+
+export function useActivities(filters?: { includeArchived?: boolean; languageId?: string; kind?: ImmersionKind }) {
+  return useQuery({ queryKey: queryKeys.activities(filters), queryFn: () => listActivities(filters) });
+}
 
 export function useLanguages() {
   return useQuery({ queryKey: queryKeys.languages, queryFn: listLanguages });
@@ -48,6 +54,7 @@ export function useInvalidateData() {
   return () =>
     Promise.all([
       queryClient.invalidateQueries({ queryKey: queryKeys.languages }),
+      queryClient.invalidateQueries({ queryKey: ["activities"] }),
       queryClient.invalidateQueries({ queryKey: ["work"] }),
       queryClient.invalidateQueries({ queryKey: ["works"] }),
       queryClient.invalidateQueries({ queryKey: ["sessions"] }),

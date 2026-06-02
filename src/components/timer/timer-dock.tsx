@@ -83,6 +83,7 @@ export function TimerDock() {
             defaults={{
               languageId: timer.languageId,
               kind: timer.kind,
+              activityId: timer.activityId ?? "none",
               workId: timer.workId ?? "none",
               workTitle: timer.workTitle,
               minutes: Math.max(1, Math.round(seconds / 60)),

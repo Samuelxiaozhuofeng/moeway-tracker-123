@@ -1,4 +1,5 @@
 import type { ImmersionKind, ImmersionSession, SessionEntrySource, WorkProgressMode } from "@/types/domain";
+import { getActivity } from "@/lib/db/activities";
 import { getDb } from "@/lib/db/database";
 import { listCompletedUnitNumbers } from "@/lib/db/work-progress";
 import { adjustWorkProgress, getWork } from "@/lib/db/works";
@@ -20,6 +21,7 @@ export interface SessionInput {
   languageId: string;
   kind: ImmersionKind;
   workId?: string | null;
+  activityId?: string | null;
   workTitle?: string;
   minutes: number;
   unitsCompleted?: number;
@@ -61,6 +63,8 @@ export async function createSession(input: SessionInput) {
   const db = getDb();
   const now = new Date().toISOString();
   const work = input.workId ? await getWork(input.workId) : undefined;
+  const activity = input.activityId ? await getActivity(input.activityId) : undefined;
+  if (input.activityId && !activity) throw new Error("活动不存在或已删除。");
   const unitNumbers = getSessionInputUnitNumbers(input);
   if (work) {
     assertUnitsWithinTotal(unitNumbers, work.totalUnits);
@@ -76,14 +80,15 @@ export async function createSession(input: SessionInput) {
     languageId: input.languageId,
     kind: input.kind,
     workId: input.workId ?? null,
-    workTitle: input.workTitle ?? work?.title,
+    activityId: input.activityId ?? null,
+    workTitle: input.workTitle ?? work?.title ?? activity?.name,
     minutes: Math.max(0, Math.round(input.minutes)),
     unitsCompleted,
     progressMode: input.progressMode ?? (work ? resolveWorkProgressMode(work, work.kind) : undefined),
     unitStart: unitFields.unitStart,
     unitEnd: unitFields.unitEnd,
     unitNumbers: unitFields.unitNumbers,
-    entrySource: input.entrySource ?? (input.isHistoricalImport ? "historical-import" : "manual"),
+    entrySource: input.entrySource ?? (input.activityId ? "activity" : input.isHistoricalImport ? "historical-import" : "manual"),
     note: input.note?.trim(),
     phrases: input.phrases?.map((phrase) => phrase.trim()).filter(Boolean) ?? [],
     isHistoricalImport: input.isHistoricalImport ?? false,
@@ -93,10 +98,18 @@ export async function createSession(input: SessionInput) {
     syncState: "dirty"
   };
 
-  await db.transaction("rw", db.sessions, db.works, async () => {
+  await db.transaction("rw", db.sessions, db.works, db.activities, async () => {
     await db.sessions.add(session);
     if (session.workId) {
       await adjustWorkProgress(session.workId, session.unitsCompleted, session.date);
+    }
+    if (activity) {
+      await db.activities.put({
+        ...activity,
+        lastUsedAt: now,
+        updatedAt: now,
+        syncState: "dirty"
+      });
     }
   });
   return session;
@@ -108,6 +121,9 @@ export async function updateSession(id: string, input: Partial<SessionInput>) {
   if (!existing) throw new Error("记录不存在或已删除。");
   const nextWorkId = input.workId === undefined ? existing.workId : input.workId;
   const nextWork = nextWorkId ? await getWork(nextWorkId) : undefined;
+  const nextActivityId = input.activityId === undefined ? existing.activityId : input.activityId;
+  const nextActivity = nextActivityId ? await getActivity(nextActivityId) : undefined;
+  if (nextActivityId && !nextActivity) throw new Error("活动不存在或已删除。");
   const hasUnitFieldInput = "unitStart" in input || "unitEnd" in input || "unitNumbers" in input;
   const unitNumbers = hasUnitFieldInput ? getSessionInputUnitNumbers(input) : getSessionInputUnitNumbers(existing);
   if (nextWork) {
@@ -123,6 +139,7 @@ export async function updateSession(id: string, input: Partial<SessionInput>) {
     languageId: input.languageId ?? existing.languageId,
     kind: input.kind ?? existing.kind,
     workId: nextWorkId,
+    activityId: nextActivityId,
     workTitle: input.workTitle ?? existing.workTitle,
     minutes: input.minutes === undefined ? existing.minutes : Math.max(0, Math.round(input.minutes)),
     unitsCompleted:

@@ -2,6 +2,7 @@ import type { Table } from "dexie";
 import { getDb } from "@/lib/db/database";
 import { getSupabaseClient } from "@/lib/supabase/client";
 import type {
+  ActivityTemplate,
   Achievement,
   GoalSettings,
   ImmersionSession,
@@ -12,7 +13,7 @@ import type {
   VocabularyItem
 } from "@/types/domain";
 
-type EntityType = "languages" | "goals" | "works" | "sessions" | "vocabulary" | "achievements" | "settings";
+type EntityType = "activities" | "languages" | "goals" | "works" | "sessions" | "vocabulary" | "achievements" | "settings";
 
 interface RemoteEntity {
   id: string;
@@ -22,7 +23,7 @@ interface RemoteEntity {
   updated_at: string;
 }
 
-const entityTypes: EntityType[] = ["languages", "goals", "works", "sessions", "vocabulary", "achievements", "settings"];
+const entityTypes: EntityType[] = ["activities", "languages", "goals", "works", "sessions", "vocabulary", "achievements", "settings"];
 
 export async function syncWithSupabase() {
   const supabase = getSupabaseClient();
@@ -44,7 +45,7 @@ export async function syncWithSupabase() {
 
   await db.transaction(
     "rw",
-    [db.languages, db.goals, db.works, db.sessions, db.vocabulary, db.achievements, db.settings],
+    [db.activities, db.languages, db.goals, db.works, db.sessions, db.vocabulary, db.achievements, db.settings],
     async () => {
       for (const row of (data ?? []) as RemoteEntity[]) {
         await applyRemoteEntity(row);
@@ -103,6 +104,7 @@ async function applyRemoteEntity(row: RemoteEntity) {
   });
 }
 
+function tableFor(entityType: "activities"): Table<ActivityTemplate, string>;
 function tableFor(entityType: "languages"): Table<TargetLanguage, string>;
 function tableFor(entityType: "goals"): Table<GoalSettings, string>;
 function tableFor(entityType: "works"): Table<LibraryWork, string>;

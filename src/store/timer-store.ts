@@ -7,6 +7,7 @@ import type { ImmersionKind } from "@/types/domain";
 export interface TimerDraft {
   languageId: string;
   kind: ImmersionKind;
+  activityId?: string | null;
   workId?: string | null;
   workTitle?: string;
 }

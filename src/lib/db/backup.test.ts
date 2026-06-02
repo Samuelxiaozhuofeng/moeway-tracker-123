@@ -1,11 +1,12 @@
 import { describe, expect, it } from "vitest";
 import { backupToCsvRows, exportBackup, importBackup } from "@/lib/db/backup";
 import { getDb } from "@/lib/db/database";
-import { makeLanguage, makeSession, makeWork } from "@/test/factories";
+import { makeActivity, makeLanguage, makeSession, makeWork } from "@/test/factories";
 
 describe("backup import and export", () => {
   it("round-trips persisted entities through a JSON backup", async () => {
     const db = getDb();
+    const activity = makeActivity({ id: "activity_anki" });
     const language = makeLanguage();
     const work = makeWork({
       progressMode: "pages",
@@ -19,16 +20,19 @@ describe("backup import and export", () => {
       entrySource: "work-detail-toggle"
     });
 
+    await db.activities.add(activity);
     await db.languages.add(language);
     await db.works.add(work);
     await db.sessions.add(session);
 
     const exported = await exportBackup();
+    await db.activities.clear();
     await db.languages.clear();
     await db.works.clear();
     await db.sessions.clear();
     await importBackup(exported);
 
+    await expect(db.activities.toArray()).resolves.toEqual([activity]);
     await expect(db.languages.toArray()).resolves.toEqual([language]);
     await expect(db.works.toArray()).resolves.toEqual([work]);
     await expect(db.sessions.toArray()).resolves.toEqual([session]);

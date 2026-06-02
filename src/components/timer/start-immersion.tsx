@@ -4,7 +4,7 @@ import { Play } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useLanguages, useWorks } from "@/lib/data/hooks";
+import { useActivities, useLanguages, useWorks } from "@/lib/data/hooks";
 import { useTimerStore } from "@/store/timer-store";
 import type { ImmersionKind } from "@/types/domain";
 
@@ -19,10 +19,12 @@ export function StartImmersion({ compact = false }: { compact?: boolean }) {
   const { data: languages = [] } = useLanguages();
   const [languageId, setLanguageId] = useState<string>();
   const [kind, setKind] = useState<ImmersionKind>("listening");
+  const [activityId, setActivityId] = useState("none");
   const [workId, setWorkId] = useState("none");
   const selectedLanguageId = languages.some((language) => language.id === languageId)
     ? languageId
     : languages[0]?.id;
+  const { data: activities = [] } = useActivities();
   const { data: works = [] } = useWorks({ languageId: selectedLanguageId, kind });
   const startTimer = useTimerStore((state) => state.startTimer);
 
@@ -30,6 +32,11 @@ export function StartImmersion({ compact = false }: { compact?: boolean }) {
     if (workId === "none" || works.some((work) => work.id === workId)) return;
     setWorkId("none");
   }, [workId, works]);
+
+  useEffect(() => {
+    if (activityId === "none" || activities.some((activity) => activity.id === activityId)) return;
+    setActivityId("none");
+  }, [activities, activityId]);
 
   useEffect(() => {
     debugLanguageSelection("language state", {
@@ -44,6 +51,7 @@ export function StartImmersion({ compact = false }: { compact?: boolean }) {
     });
   }, [languageId, languages, selectedLanguageId]);
 
+  const selectedActivity = activities.find((activity) => activity.id === activityId);
   const selectedWork = works.find((work) => work.id === workId);
 
   return (
@@ -54,7 +62,7 @@ export function StartImmersion({ compact = false }: { compact?: boolean }) {
           <h2 className="mt-1 text-2xl font-semibold">现在就记一段</h2>
         </div>
       )}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-3 sm:grid-cols-2">
         <Select
           value={selectedLanguageId}
           onValueChange={(nextLanguageId) => {
@@ -77,7 +85,30 @@ export function StartImmersion({ compact = false }: { compact?: boolean }) {
             <SelectItem value="reading">阅读</SelectItem>
           </SelectContent>
         </Select>
-        <Select value={workId} onValueChange={setWorkId}>
+        <Select
+          value={activityId}
+          onValueChange={(value) => {
+            const activity = activities.find((item) => item.id === value);
+            setActivityId(value);
+            if (!activity) return;
+            if (activity.languageId) setLanguageId(activity.languageId);
+            setKind(activity.kind);
+            setWorkId("none");
+          }}
+        >
+          <SelectTrigger><SelectValue placeholder="选择活动" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">不使用活动</SelectItem>
+            {activities.map((activity) => <SelectItem key={activity.id} value={activity.id}>{activity.name}</SelectItem>)}
+          </SelectContent>
+        </Select>
+        <Select
+          value={workId}
+          onValueChange={(value) => {
+            setWorkId(value);
+            if (value !== "none") setActivityId("none");
+          }}
+        >
           <SelectTrigger><SelectValue placeholder="选择作品" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="none">自由沉浸</SelectItem>
@@ -94,8 +125,9 @@ export function StartImmersion({ compact = false }: { compact?: boolean }) {
           startTimer({
             languageId: selectedLanguageId,
             kind,
+            activityId: selectedActivity?.id ?? null,
             workId: selectedWork?.id ?? null,
-            workTitle: selectedWork?.title
+            workTitle: selectedWork?.title ?? selectedActivity?.name
           });
         }}
       >

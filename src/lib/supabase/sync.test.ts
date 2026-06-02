@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getDb } from "@/lib/db/database";
 import { getWork } from "@/lib/db/works";
-import { makeWork } from "@/test/factories";
+import { makeActivity, makeWork } from "@/test/factories";
 import { syncWithSupabase } from "@/lib/supabase/sync";
 
 const getSupabaseClient = vi.hoisted(() => vi.fn());
@@ -47,6 +47,25 @@ describe("syncWithSupabase deletion semantics", () => {
     expect(upserts[0]).toMatchObject([{ id: "work_1", deleted_at: deletedAt }]);
     await expect(getDb().works.get("work_1")).resolves.toMatchObject({
       deletedAt,
+      syncState: "synced",
+      userId: "user_1"
+    });
+  });
+
+  it("syncs activity templates as first-class entities", async () => {
+    const upserts = mockSupabase();
+    await getDb().activities.add(makeActivity({ id: "activity_anki", name: "Anki" }));
+
+    await expect(syncWithSupabase()).resolves.toEqual({ ok: true });
+
+    expect(upserts[0]).toMatchObject([
+      {
+        id: "activity_anki",
+        entity_type: "activities",
+        payload: { name: "Anki", syncState: "synced", userId: "user_1" }
+      }
+    ]);
+    await expect(getDb().activities.get("activity_anki")).resolves.toMatchObject({
       syncState: "synced",
       userId: "user_1"
     });

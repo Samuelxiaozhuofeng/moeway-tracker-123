@@ -1,5 +1,6 @@
 import { getDb } from "@/lib/db/database";
 import type {
+  ActivityTemplate,
   Achievement,
   GoalSettings,
   ImmersionSession,
@@ -12,6 +13,7 @@ import type {
 export interface BackupPayload {
   version: 1;
   exportedAt: string;
+  activities?: ActivityTemplate[];
   languages: TargetLanguage[];
   goals: GoalSettings[];
   works: LibraryWork[];
@@ -23,7 +25,8 @@ export interface BackupPayload {
 
 export async function exportBackup(): Promise<BackupPayload> {
   const db = getDb();
-  const [languages, goals, works, sessions, vocabulary, achievements, settings] = await Promise.all([
+  const [activities, languages, goals, works, sessions, vocabulary, achievements, settings] = await Promise.all([
+    db.activities.toArray(),
     db.languages.toArray(),
     db.goals.toArray(),
     db.works.toArray(),
@@ -35,6 +38,7 @@ export async function exportBackup(): Promise<BackupPayload> {
   return {
     version: 1,
     exportedAt: new Date().toISOString(),
+    activities,
     languages,
     goals,
     works,
@@ -50,9 +54,10 @@ export async function importBackup(payload: BackupPayload) {
   const db = getDb();
   await db.transaction(
     "rw",
-    [db.languages, db.goals, db.works, db.sessions, db.vocabulary, db.achievements, db.settings],
+    [db.activities, db.languages, db.goals, db.works, db.sessions, db.vocabulary, db.achievements, db.settings],
     async () => {
       await Promise.all([
+        db.activities.clear(),
         db.languages.clear(),
         db.goals.clear(),
         db.works.clear(),
@@ -62,6 +67,7 @@ export async function importBackup(payload: BackupPayload) {
         db.settings.clear()
       ]);
       await Promise.all([
+        db.activities.bulkPut(payload.activities ?? []),
         db.languages.bulkPut(payload.languages),
         db.goals.bulkPut(payload.goals),
         db.works.bulkPut(payload.works),

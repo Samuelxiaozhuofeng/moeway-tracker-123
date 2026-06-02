@@ -1,5 +1,6 @@
 import Dexie, { type Table } from "dexie";
 import type {
+  ActivityTemplate,
   Achievement,
   GoalSettings,
   ImmersionSession,
@@ -10,6 +11,7 @@ import type {
 } from "@/types/domain";
 
 export class ImmerseLogDatabase extends Dexie {
+  activities!: Table<ActivityTemplate, string>;
   languages!: Table<TargetLanguage, string>;
   goals!: Table<GoalSettings, string>;
   works!: Table<LibraryWork, string>;
@@ -34,6 +36,16 @@ export class ImmerseLogDatabase extends Dexie {
       goals: "id, languageId, updatedAt, syncState",
       works: "id, languageId, kind, status, title, progressMode, lastRecordedAt, updatedAt, syncState",
       sessions: "id, date, languageId, kind, workId, progressMode, unitStart, unitEnd, updatedAt, syncState",
+      vocabulary: "id, languageId, sessionId, phrase, reviewedAt, updatedAt, syncState",
+      achievements: "id, key, unlockedAt, updatedAt, syncState",
+      settings: "id, updatedAt, syncState"
+    });
+    this.version(3).stores({
+      activities: "id, languageId, kind, isArchived, sortOrder, lastUsedAt, updatedAt, syncState",
+      languages: "id, code, updatedAt, syncState",
+      goals: "id, languageId, updatedAt, syncState",
+      works: "id, languageId, kind, status, title, progressMode, lastRecordedAt, updatedAt, syncState",
+      sessions: "id, date, languageId, kind, workId, activityId, progressMode, unitStart, unitEnd, updatedAt, syncState",
       vocabulary: "id, languageId, sessionId, phrase, reviewedAt, updatedAt, syncState",
       achievements: "id, key, unlockedAt, updatedAt, syncState",
       settings: "id, updatedAt, syncState"
