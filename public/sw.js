@@ -1,11 +1,6 @@
-const CACHE_NAME = "immerselog-shell-v2";
+const CACHE_NAME = "immerselog-shell-v3";
 const APP_SHELL = [
-  "/",
-  "/library",
-  "/log",
-  "/analytics",
-  "/profile",
-  "/vocab",
+  "/offline.html",
   "/manifest.webmanifest",
   "/icon.svg"
 ];
@@ -40,12 +35,7 @@ self.addEventListener("fetch", (event) => {
   if (request.mode === "navigate") {
     event.respondWith(
       fetch(request)
-        .then((response) => {
-          const copy = response.clone();
-          if (response.ok && isSameOrigin) caches.open(CACHE_NAME).then((cache) => cache.put(request, copy));
-          return response;
-        })
-        .catch(() => caches.match(url.pathname).then((cached) => cached ?? caches.match("/")))
+        .catch(() => caches.match("/offline.html"))
     );
     return;
   }
